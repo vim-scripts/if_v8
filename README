@@ -1,0 +1,28 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=2375
+
+V8 is Google's open source JavaScript engine.
+
+Requirements:
+  linux or windows.
+  Vim executable file with some exported symbol that if_v8 requires.
+    On linux:
+      Compile with gcc's -rdynamic option.
+    On windows (msvc):
+      Use vim_export.def and add linker flag "/DEF:vim_export.def".
+      nmake -f Make_mvc.mak linkdebug=/DEF:vim_export.def
+
+Usage:
+  :source /path/to/if_v8/init.vim
+  :V8 print('hello, world')
+  => hello, world
+  :V8 3 + 4
+  => 7
+  :V8 vim.execute('version')
+  => ... version message
+  :V8 var tw = vim.eval('&tw')
+  :V8 tw
+  => 78
+  :V8 vim.let('&tw', '40')
+  :echo &tw
+  => 40
+  :V8 load('foo.js')
