@@ -1,13 +1,12 @@
 /*
  * v8 interface to Vim
  *
- * Last Change: 2008-09-14
+ * Last Change: 2008-09-15
  * Maintainer: Yukihiro Nakadaira <yukihiro.nakadaira@gmail.com>
  *
  * Require:
  *  Unix-like system.
  *  Vim compiled with -rdynamic option.
- *  FEAT_PYTHON to access vim's Dictionary (dict_lookup() function).
  *
  * Compile:
  *  g++ -I/path/to/v8/include -shared -o if_v8.so if_v8.cpp \
@@ -188,13 +187,23 @@ struct dictvar_S
     dict_T	*dv_used_prev;	/* previous dict in used dicts list */
 };
 
+/*
+ * In a hashtab item "hi_key" points to "di_key" in a dictitem.
+ * This avoids adding a pointer to the hashtab item.
+ * DI2HIKEY() converts a dictitem pointer to a hashitem key pointer.
+ * HIKEY2DI() converts a hashitem key pointer to a dictitem pointer.
+ * HI2DI() converts a hashitem pointer to a dictitem pointer.
+ */
+static dictitem_T dumdi;
+#define DI2HIKEY(di) ((di)->di_key)
+#define HIKEY2DI(p)  ((dictitem_T *)(p - (dumdi.di_key - (char_u *)&dumdi)))
+#define HI2DI(hi)     HIKEY2DI((hi)->hi_key)
 
 static struct vim {
   typval_T * (*eval_expr) (char_u *arg, char_u **nextcmd);
   int (*do_cmdline_cmd) (char_u *cmd);
   void (*free_tv) (typval_T *varp);
   char_u *hash_removed;
-  dictitem_T * (*dict_lookup) (hashitem_T *hi);
 } vim;
 
 static void *dll_handle = NULL;
@@ -259,11 +268,6 @@ init_vim()
   GETSYMBOL(do_cmdline_cmd);
   GETSYMBOL(free_tv);
   GETSYMBOL(hash_removed);
-  do {
-    /* can be null */
-    void **p = (void **)&vim.dict_lookup;
-    *p = dlsym(vim_handle, "dict_lookup");
-  } while (0);
   return NULL;
 }
 
@@ -337,10 +341,6 @@ vim_to_v8(typval_T *tv, int depth, LookupMap *lookup_map)
       return res;
     }
   case VAR_DICT:
-    /* require FEAT_PYTHON */
-    if (vim.dict_lookup == NULL)
-      return v8::Undefined();
-
     {
       hashtab_T *ht = &tv->vval.v_dict->dv_hashtab;
       long_u todo = ht->ht_used;
@@ -350,7 +350,7 @@ vim_to_v8(typval_T *tv, int depth, LookupMap *lookup_map)
       for (hi = ht->ht_array; todo > 0; ++hi) {
         if (!HASHITEM_EMPTY(hi)) {
           --todo;
-          di = vim.dict_lookup(hi);
+          di = HI2DI(hi);
           res->Set(v8::String::New((char *)hi->hi_key), vim_to_v8(&di->di_tv, depth + 1, lookup_map));
         }
       }
