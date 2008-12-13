@@ -1,0 +1,5 @@
+EXPORTS
+  eval_expr
+  do_cmdline_cmd
+  free_tv
+  hash_removed

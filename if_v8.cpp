@@ -1,12 +1,17 @@
 /*
  * v8 interface to Vim
  *
- * Last Change: 2008-09-15
+ * Last Change: 2008-12-14
  * Maintainer: Yukihiro Nakadaira <yukihiro.nakadaira@gmail.com>
  *
  * Require:
- *  Unix-like system.
- *  Vim compiled with -rdynamic option.
+ *  linux or windows.
+ *  Vim executable file with some exported symbol that if_v8 requires.
+ *    On linux:
+ *      Compile with gcc's -rdynamic option.
+ *    On windows (msvc):
+ *      Use vim_export.def and add linker flag "/DEF:vim_export.def".
+ *      nmake -f Make_mvc.mak linkdebug=/DEF:vim_export.def
  *
  * Compile:
  *  g++ -I/path/to/v8/include -shared -o if_v8.so if_v8.cpp \
@@ -20,11 +25,15 @@
  *  let err = libcall(if_v8, 'execute', 'load("foo.js")')
  *
  */
-#include <dlfcn.h>
-#include <v8.h>
+#ifdef WIN32
+# include <windows.h>
+#else
+# include <dlfcn.h>
+#endif
 #include <string>
 #include <cstdio>
 #include <map>
+#include <v8.h>
 
 typedef std::map<void*, v8::Handle<v8::Value> > LookupMap;
 
@@ -209,10 +218,16 @@ static struct vim {
 static void *dll_handle = NULL;
 static v8::Handle<v8::Context> context;
 
+#ifdef WIN32
+# define DLLEXPORT __declspec(dllexport)
+#else
+# define DLLEXPORT
+#endif
+
 /* API */
 extern "C" {
-const char *init(const char *dll_path);
-const char *execute(const char *expr);
+DLLEXPORT const char *init(const char *dll_path);
+DLLEXPORT const char *execute(const char *expr);
 }
 
 static const char *init_vim();
@@ -230,8 +245,13 @@ init(const char *dll_path)
   const char *err;
   if (dll_handle != NULL)
     return NULL;
+#ifdef WIN32
+  if ((dll_handle = (void*)LoadLibrary(dll_path)) == NULL)
+    return "error: LoadLibrary()";
+#else
   if ((dll_handle = dlopen(dll_path, RTLD_NOW)) == NULL)
     return dlerror();
+#endif
   if ((err = init_vim()) != NULL)
     return err;
   if ((err = init_v8()) != NULL)
@@ -251,19 +271,33 @@ execute(const char *expr)
   return err.c_str();
 }
 
+#ifdef WIN32
+#define GETSYMBOL(name)                                                   \
+  do {                                                                    \
+    void **p = (void **)&vim.name;                                        \
+    if ((*p = (void*)GetProcAddress((HMODULE)vim_handle, #name)) == NULL) \
+      return "error: GetProcAddress()";                                   \
+  } while (0)
+#else
 #define GETSYMBOL(name)                           \
   do {                                            \
     void **p = (void **)&vim.name;                \
     if ((*p = dlsym(vim_handle, #name)) == NULL)  \
       return dlerror();                           \
   } while (0)
+#endif
 
 static const char *
 init_vim()
 {
   void *vim_handle;
+#ifdef WIN32
+  if ((vim_handle = (void*)GetModuleHandle(NULL)) == NULL)
+    return "error: GetModuleHandle()";
+#else
   if ((vim_handle = dlopen(NULL, RTLD_NOW)) == NULL)
     return dlerror();
+#endif
   GETSYMBOL(eval_expr);
   GETSYMBOL(do_cmdline_cmd);
   GETSYMBOL(free_tv);
