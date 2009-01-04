@@ -650,6 +650,9 @@ static v8::Handle<v8::Array> VimListEnumerate(const v8::AccessorInfo& info);
 static v8::Handle<v8::Value> VimListLength(v8::Local<v8::String> property, const v8::AccessorInfo& info);
 static v8::Handle<v8::Value> VimDictCreate(const v8::Arguments& args);
 static void VimDictDestroy(v8::Persistent<v8::Value> object, void* parameter);
+static v8::Handle<v8::Value> VimDictIdxGet(uint32_t index, const v8::AccessorInfo& info);
+static v8::Handle<v8::Value> VimDictIdxSet(uint32_t index, v8::Local<v8::Value> value, const v8::AccessorInfo& info);
+static v8::Handle<v8::Boolean> VimDictIdxDelete(uint32_t index, const v8::AccessorInfo& info);
 static v8::Handle<v8::Value> VimDictGet(v8::Local<v8::String> property, const v8::AccessorInfo& info);
 static v8::Handle<v8::Value> VimDictSet(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::AccessorInfo& info);
 static v8::Handle<v8::Boolean> VimDictDelete(v8::Local<v8::String> property, const v8::AccessorInfo& info);
@@ -760,6 +763,7 @@ init_v8()
   VimDict->SetClassName(v8::String::New("VimDict"));
   VimDictTemplate = v8::Persistent<v8::ObjectTemplate>::New(VimDict->InstanceTemplate());
   VimDictTemplate->SetInternalFieldCount(1);
+  VimDictTemplate->SetIndexedPropertyHandler(VimDictIdxGet, VimDictIdxSet, NULL, VimDictIdxDelete);
   VimDictTemplate->SetNamedPropertyHandler(VimDictGet, VimDictSet, NULL, VimDictDelete, VimDictEnumerate);
 
   v8::Handle<v8::ObjectTemplate> internal = v8::ObjectTemplate::New();
@@ -1205,6 +1209,7 @@ VimListCreate(const v8::Arguments& args)
   list_T *list = list_alloc();
   if (list == NULL)
     return v8::ThrowException(v8::String::New("VimListCreate(): list_alloc(): out of memory"));
+  ++list->lv_refcount;
 
   v8::Persistent<v8::Object> self = v8::Persistent<v8::Object>::New(args.Holder());
   self.MakeWeak(list, VimListDestroy);
@@ -1303,6 +1308,7 @@ VimDictCreate(const v8::Arguments& args)
   dict_T *dict = dict_alloc();
   if (dict == NULL)
     return v8::ThrowException(v8::String::New("VimDictCreate(): dict_alloc(): out of memory"));
+  ++dict->dv_refcount;
 
   v8::Persistent<v8::Object> self = v8::Persistent<v8::Object>::New(args.Holder());
   self.MakeWeak(dict, VimDictDestroy);
@@ -1316,6 +1322,24 @@ VimDictDestroy(v8::Persistent<v8::Value> object, void* parameter)
 {
   objcache.erase(parameter);
   dict_unref(static_cast<dict_T*>(parameter));
+}
+
+static v8::Handle<v8::Value>
+VimDictIdxGet(uint32_t index, const v8::AccessorInfo& info)
+{
+  return VimDictGet(v8::Integer::New(index)->ToString(), info);
+}
+
+static v8::Handle<v8::Value>
+VimDictIdxSet(uint32_t index, v8::Local<v8::Value> value, const v8::AccessorInfo& info)
+{
+  return VimDictSet(v8::Integer::New(index)->ToString(), value, info);
+}
+
+static v8::Handle<v8::Boolean>
+VimDictIdxDelete(uint32_t index, const v8::AccessorInfo& info)
+{
+  return VimDictDelete(v8::Integer::New(index)->ToString(), info);
 }
 
 static v8::Handle<v8::Value>
