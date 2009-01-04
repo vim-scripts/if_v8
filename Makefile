@@ -1,6 +1,8 @@
 
-CFLAGS=-I$(HOME)/tmp/v8/include
-LDFLAGS=-L$(HOME)/tmp/v8 -lv8 -lpthread
+V8DIR=$(HOME)/tmp/v8
+
+CFLAGS=-I$(V8DIR)/include -W -Wall
+LDFLAGS=-L$(V8DIR) -lv8 -lpthread
 
 all: if_v8.so
 

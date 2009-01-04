@@ -1,6 +1,8 @@
 
-CFLAGS=/I..\..\v8\include /DWIN32
-LDFLAGS=..\..\v8\v8.lib
+V8DIR=..\..\v8
+
+CFLAGS=/I$(V8DIR)\include /DWIN32
+LDFLAGS=$(V8DIR)\v8.lib
 
 all: if_v8.dll
 

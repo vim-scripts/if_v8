@@ -1,5 +1,22 @@
 EXPORTS
+  ; variables
+  hash_removed
+  ; functions
   eval_expr
+  eval_to_string
   do_cmdline_cmd
   free_tv
-  hash_removed
+  clear_tv
+  emsg
+  alloc
+  vim_free
+  vim_strsave
+  vim_strnsave
+  vim_strncpy
+  list_alloc
+  list_free
+  list_unref
+  dict_alloc
+  hash_add
+  hash_find
+  hash_remove
