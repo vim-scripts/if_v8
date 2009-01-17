@@ -3,7 +3,6 @@ EXPORTS
   hash_removed
   ; functions
   eval_expr
-  eval_to_string
   do_cmdline_cmd
   free_tv
   clear_tv
@@ -15,8 +14,8 @@ EXPORTS
   vim_strncpy
   list_alloc
   list_free
-  list_unref
   dict_alloc
   hash_add
   hash_find
   hash_remove
+  vim_snprintf
