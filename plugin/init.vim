@@ -3,6 +3,11 @@ command! V8Start call s:lib.v8start()
 command! V8End execute V8End()
 command! -nargs=* V8 execute V8(<q-args>, expand('<sfile>') == '')
 
+augroup V8
+  au!
+  autocmd CursorHold,CursorHoldI * call s:lib.gc()
+augroup END
+
 function! V8End()
   return s:lib.v8end()
 endfunction
@@ -35,7 +40,15 @@ function s:lib.init() abort
     return
   endif
   let s:init = 1
+  if has('win32')
+    " If if_v8.dll links to separated v8.dll, we need to set $PATH.
+    let path_save = $PATH
+    let $PATH .= ';' . self.dir
+  endif
   let err = libcall(self.dll, 'init', self.dll)
+  if has('win32')
+    let $PATH = path_save
+  endif
   if err != ''
     echoerr err
   endif
@@ -83,6 +96,10 @@ endfunction
 
 function s:lib.v8expr(expr)
   return printf("libcall(\"%s\", 'execute', \"%s\")", escape(self.dll, '\"'), escape(a:expr, '\"'))
+endfunction
+
+function s:lib.gc()
+  call libcall(self.dll, 'gc', 0)
 endfunction
 
 call s:lib.init()

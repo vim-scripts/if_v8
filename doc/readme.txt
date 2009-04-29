@@ -8,15 +8,18 @@ Requirements:
   c++ compiler (gcc or visual c++).
   linux or windows.
   Vim executable file with some exported symbol that if_v8 requires.
-    On linux:
-      Compile with gcc's -rdynamic option.
-    On windows (msvc):
-      Use vim_export.def and add linker flag "/DEF:vim_export.def".
-      nmake -f Make_mvc.mak linkdebug=/DEF:vim_export.def
+    On Linux:
+      Compile vim with gcc's -rdynamic option.
+    On Windows:
+      Use vim_export.def when compiling.
+      msvc:
+        nmake -f Make_mvc.mak linkdebug=/DEF:vim_export.def
+      mingw:
+        make -f Make_ming.mak LFLAGS=vim_export.def
 
 
 Usage:
-  :source /path/to/v8/init.vim
+  :source /path/to/if_v8/init.vim
   :V8 print('hello, world')
   => hello, world
   :V8 3 + 4
