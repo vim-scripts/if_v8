@@ -5,7 +5,7 @@ command! -nargs=* V8 execute V8(<q-args>, expand('<sfile>') == '')
 
 augroup V8
   au!
-  autocmd CursorHold,CursorHoldI * call s:lib.gc()
+  autocmd CursorHold,CursorHoldI * execute s:lib.v8execute("gc()")
 augroup END
 
 function! V8End()
@@ -34,6 +34,7 @@ let s:lib.dll = s:lib.dir . '/if_v8' . (has('win32') ? '.dll' : '.so')
 let s:lib.runtime = [
       \ s:lib.dir . '/runtime.js',
       \ ]
+let s:lib.flags = '--expose-gc'
 
 function s:lib.init() abort
   if exists('s:init')
@@ -45,7 +46,7 @@ function s:lib.init() abort
     let path_save = $PATH
     let $PATH .= ';' . self.dir
   endif
-  let err = libcall(self.dll, 'init', self.dll)
+  let err = libcall(self.dll, 'init', self.dll . "," . self.flags)
   if has('win32')
     let $PATH = path_save
   endif
@@ -96,10 +97,6 @@ endfunction
 
 function s:lib.v8expr(expr)
   return printf("libcall(\"%s\", 'execute', \"%s\")", escape(self.dll, '\"'), escape(a:expr, '\"'))
-endfunction
-
-function s:lib.gc()
-  call libcall(self.dll, 'gc', 0)
 endfunction
 
 call s:lib.init()

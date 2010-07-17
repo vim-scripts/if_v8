@@ -2,7 +2,7 @@
  *
  * v8 interface to Vim
  *
- * Last Change: 2009-04-29
+ * Last Change: 2010-06-27
  * Maintainer: Yukihiro Nakadaira <yukihiro.nakadaira@gmail.com>
  */
 #include <cstdio>
@@ -15,9 +15,8 @@
 
 /* API */
 extern "C" {
-DLLEXPORT const char *init(const char *dll_path);
+DLLEXPORT const char *init(const char *args);
 DLLEXPORT const char *execute(const char *expr);
-DLLEXPORT const char *gc();
 }
 
 using namespace v8;
@@ -42,7 +41,7 @@ static LookupMap objcache;
 // keep reference to avoid garbage collect.
 static dict_T *v_weak;
 
-static const char *init_v8();
+static const char *init_v8(std::string args);
 
 static bool vim_to_v8(typval_T *vimobj, Handle<Value> *v8obj, int depth, LookupMap *lookup, bool wrap, std::string *err);
 static bool v8_to_vim(Handle<Value> v8obj, typval_T *vimobj, int depth, LookupMap *lookup, std::string *err);
@@ -80,7 +79,7 @@ static Handle<Boolean> VimDictIdxQuery(uint32_t index, const AccessorInfo& info)
 static Handle<Boolean> VimDictIdxDelete(uint32_t index, const AccessorInfo& info);
 static Handle<Value> VimDictGet(Local<String> property, const AccessorInfo& info);
 static Handle<Value> VimDictSet(Local<String> property, Local<Value> value, const AccessorInfo& info);
-static Handle<Boolean> VimDictQuery(Local<String> property, const AccessorInfo& info);
+static Handle<Integer> VimDictQuery(Local<String> property, const AccessorInfo& info);
 static Handle<Boolean> VimDictDelete(Local<String> property, const AccessorInfo& info);
 static Handle<Array> VimDictEnumerate(const AccessorInfo& info);
 
@@ -107,18 +106,23 @@ struct Trace {
 # define TRACE(name)
 #endif
 
+/* args = dll_path,v8_args */
 const char *
-init(const char *dll_path)
+init(const char *_args)
 {
   TRACE("init");
   const char *err;
+  std::string args(_args);
+  size_t pos = args.find(",", 0);
+  std::string dll_path = args.substr(0, pos);
+  std::string v8_args = args.substr(pos + 1);
   if (dll_handle != NULL)
     return NULL;
-  if ((dll_handle = DLOPEN(dll_path)) == NULL)
+  if ((dll_handle = DLOPEN(dll_path.c_str())) == NULL)
     return "error: cannot load library";
   if ((err = init_vim()) != NULL)
     return err;
-  if ((err = init_v8()) != NULL)
+  if ((err = init_v8(v8_args)) != NULL)
     return err;
   return NULL;
 }
@@ -135,22 +139,13 @@ execute(const char *expr)
   return NULL;
 }
 
-// v8/ChangeLog
-// 2009-02-27: Version 1.0.3
-// Force garbage collections when disposing contexts.
-const char *
-gc()
-{
-  TRACE("gc");
-  HandleScope handle_scope;
-  Context::New().Dispose();
-  return NULL;
-}
-
 static const char *
-init_v8()
+init_v8(std::string args)
 {
   TRACE("init_v8");
+
+  V8::SetFlagsFromString(args.c_str(), args.length());
+
   HandleScope handle_scope;
 
   v_weak = dict_alloc();
@@ -854,7 +849,9 @@ static Handle<Boolean>
 VimDictIdxQuery(uint32_t index, const AccessorInfo& info)
 {
   TRACE("VimDictIdxQuery");
-  return VimDictQuery(Integer::New(index)->ToString(), info);
+  if (VimDictQuery(Integer::New(index)->ToString(), info).IsEmpty())
+      return False();
+  return True();
 }
 
 static Handle<Boolean>
@@ -916,7 +913,7 @@ VimDictSet(Local<String> property, Local<Value> value, const AccessorInfo& info)
   return value;
 }
 
-static Handle<Boolean>
+static Handle<Integer>
 VimDictQuery(Local<String> property, const AccessorInfo& info)
 {
   TRACE("VimDictQuery");
@@ -926,8 +923,8 @@ VimDictQuery(Local<String> property, const AccessorInfo& info)
   String::Utf8Value key(property);
   dictitem_T *di = dict_find(dict, (char_u*)*key, -1);
   if (di == NULL)
-    return False();
-  return True();
+    return Handle<Integer>();
+  return Integer::New(None);
 }
 
 static Handle<Boolean>
