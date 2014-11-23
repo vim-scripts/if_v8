@@ -19,13 +19,17 @@ endfunction
 " usage:
 "   :let res = eval(V8Eval('3 + 4'))
 function! V8Eval(expr)
-  let result = '"v:[''%v8_result%'']"'
-  let jsexpr = 'vim.v["%v8_result%"] = eval("(' . escape(a:expr, '\"') . ')")'
+  let result = '"g:__if_v8[''%v8_result%'']"'
+  let jsexpr = 'vim.g["__if_v8"]["%v8_result%"] = eval("(' . escape(a:expr, '\"') . ')")'
   let expr = s:lib.v8expr(jsexpr)
   return printf("eval([%s, %s][0])", result, expr)
 endfunction
 
 
+if !exists('s:__if_v8')
+  let s:__if_v8 = {}
+endif
+let g:__if_v8 = s:__if_v8
 
 let s:lib = {}
 
@@ -79,14 +83,14 @@ function s:lib.v8execute(cmd, ...)
     " interactive mode
     return ""
         \ . "try\n"
-        \ . "  let v:['%v8_print%'] = ''\n"
+        \ . "  let g:__if_v8['%v8_print%'] = ''\n"
         \ . "  echo expand('<args>')\n"
         \ . "  call eval(\"" . escape(cmd, '\"') . "\")\n"
-        \ . "  echo v:['%v8_print%']\n"
+        \ . "  echo g:__if_v8['%v8_print%']\n"
         \ . "catch\n"
         \ . "  echohl Error\n"
-        \ . "  for v:['%v8_line%'] in split(v:['%v8_errmsg%'], '\\n')\n"
-        \ . "    echomsg v:['%v8_line%']\n"
+        \ . "  for g:__if_v8['%v8_line%'] in split(g:__if_v8['%v8_errmsg%'], '\\n')\n"
+        \ . "    echomsg g:__if_v8['%v8_line%']\n"
         \ . "  endfor\n"
         \ . "  echohl None\n"
         \ . "endtry\n"

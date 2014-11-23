@@ -10,13 +10,13 @@
     for (var i = 0; i < arguments.length; i++) {
       args.push(arguments[i]);
     }
-    _v['%v8_result%'] = 0;
-    _v['%v8_args%'] = args;
-    _vim_execute("try | execute v:['%v8_args%'][0] | let v:['%v8_exception%'] = '' | catch | let v:['%v8_exception%'] = v:exception | endtry");
-    if (_v['%v8_exception%'] != '') {
-      throw _v['%v8_exception%'];
+    _g['__if_v8']['%v8_result%'] = 0;
+    _g['__if_v8']['%v8_args%'] = args;
+    _vim_execute("try | execute g:__if_v8['%v8_args%'][0] | let g:__if_v8['%v8_exception%'] = '' | catch | let g:__if_v8['%v8_exception%'] = v:exception | endtry");
+    if (_g['__if_v8']['%v8_exception%'] != '') {
+      throw _g['__if_v8']['%v8_exception%'];
     }
-    return _v['%v8_result%'];
+    return _g['__if_v8']['%v8_result%'];
   };
 
   global.load = function(file) {
@@ -60,23 +60,23 @@
   };
 
   vim.execute = function(cmd) {
-    vim_execute("execute v:['%v8_args%'][1]", cmd);
+    vim_execute("execute g:__if_v8['%v8_args%'][1]", cmd);
   };
 
   vim.call = function(func, args, obj) {
     if (obj === undefined) {
-      return vim_execute("let v:['%v8_result%'] = call(v:['%v8_args%'][1], v:['%v8_args%'][2])", func, args);
+      return vim_execute("let g:__if_v8['%v8_result%'] = call(g:__if_v8['%v8_args%'][1], g:__if_v8['%v8_args%'][2])", func, args);
     } else {
-      return vim_execute("let v:['%v8_result%'] = call(v:['%v8_args%'][1], v:['%v8_args%'][2], v:['%v8_args%'][3])", func, args, obj);
+      return vim_execute("let g:__if_v8['%v8_result%'] = call(g:__if_v8['%v8_args%'][1], g:__if_v8['%v8_args%'][2], g:__if_v8['%v8_args%'][3])", func, args, obj);
     }
   };
 
   vim.let = function(varname, value) {
-    vim_execute("execute 'let ' . v:['%v8_args%'][1] . ' = v:[''%v8_args%''][2]'", varname, value);
+    vim_execute("execute 'let ' . g:__if_v8['%v8_args%'][1] . ' = g:__if_v8[''%v8_args%''][2]'", varname, value);
   };
 
   vim.echo = function(obj) {
-    vim_execute("echo v:['%v8_args%'][1]", obj);
+    vim_execute("echo g:__if_v8['%v8_args%'][1]", obj);
   };
 
   vim['function'] = vim.call('function', ['function'])

@@ -199,11 +199,12 @@ typedef struct dictitem_S dictitem_T;
  */
 struct dictvar_S
 {
-    int		dv_refcount;	/* reference count */
-    hashtab_T	dv_hashtab;	/* hashtab that refers to the items */
-    int		dv_copyID;	/* ID used by deepcopy() */
-    dict_T	*dv_copydict;	/* copied dict used by deepcopy() */
     char	dv_lock;	/* zero, VAR_LOCKED, VAR_FIXED */
+    char	dv_scope;	/* zero, VAR_SCOPE, VAR_DEF_SCOPE */
+    int		dv_refcount;	/* reference count */
+    int		dv_copyID;	/* ID used by deepcopy() */
+    hashtab_T	dv_hashtab;	/* hashtab that refers to the items */
+    dict_T	*dv_copydict;	/* copied dict used by deepcopy() */
     dict_T	*dv_used_next;	/* next dict in used dicts list */
     dict_T	*dv_used_prev;	/* previous dict in used dicts list */
 };
@@ -667,19 +668,19 @@ func_ref(
     typval_T tv;
     dictitem_T *di;
     hashitem_T *hi;
-    char exprbuf[] = "let v:['%v8_func2%'] = v:['%v8_func1%']";
+    char exprbuf[] = "let g:X__if_v8_func2 = g:X__if_v8_func1";
     tv.v_type = VAR_FUNC;
     tv.v_lock = 0;
     tv.vval.v_string = name;
-    dict_set_tv_nocopy(&vimvardict, (char_u*)"%v8_func1%", &tv);
+    dict_set_tv_nocopy(&globvardict, (char_u*)"X__if_v8_func1", &tv);
     do_cmdline_cmd((char_u*)exprbuf);
-    hi = hash_find(&vimvardict.dv_hashtab, (char_u*)"%v8_func1%");
+    hi = hash_find(&globvardict.dv_hashtab, (char_u*)"X__if_v8_func1");
     di = HI2DI(hi);
-    hash_remove(&vimvardict.dv_hashtab, hi);
+    hash_remove(&globvardict.dv_hashtab, hi);
     vim_free(di);
-    hi = hash_find(&vimvardict.dv_hashtab, (char_u*)"%v8_func2%");
+    hi = hash_find(&globvardict.dv_hashtab, (char_u*)"X__if_v8_func2");
     di = HI2DI(hi);
-    hash_remove(&vimvardict.dv_hashtab, hi);
+    hash_remove(&globvardict.dv_hashtab, hi);
     vim_free(di);
 }
 
